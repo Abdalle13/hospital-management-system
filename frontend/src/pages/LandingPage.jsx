@@ -613,7 +613,7 @@ const LandingPage = () => {
           </div>
 
           <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-500 text-sm">© 2026 SmartClinic Hospital Management System. All rights reserved.</p>
+            <p className="text-gray-500 text-sm">© 2026 SmartClinic Hospital Management System. Built by Abdalle.</p>
             <div className="flex gap-6 text-sm text-gray-500">
               <a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a>

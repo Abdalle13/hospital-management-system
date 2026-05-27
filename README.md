@@ -57,6 +57,8 @@ A modern, full-stack Hospital Management System designed to streamline clinic op
    npm run dev
    ```
 
-## 📜 License
+## 📜 License & Credits
 
 This project is licensed under the MIT License.
+
+**Built with ❤️ by Abdalle**

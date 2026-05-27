@@ -62,7 +62,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <p className="text-emerald-200 text-xs">© 2026 SmartClinic Hospital System. All rights reserved.</p>
+          <p className="text-emerald-200 text-xs">© 2026 SmartClinic Hospital System. Built by Abdalle.</p>
         </motion.div>
 
         {/* Right Panel - Login Form */}
