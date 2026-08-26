@@ -1,9 +1,19 @@
 import Record from '../models/recordModel.js';
+import getOwnPatientId from '../utils/getOwnPatientId.js';
+
+const STAFF_ROLES = ['admin', 'doctor', 'receptionist'];
 
 // @desc    Get records by patient
 // @route   GET /api/records/:patientId
 export const getRecordsByPatient = async (req, res) => {
   try {
+    if (!STAFF_ROLES.includes(req.user.role)) {
+      const ownId = await getOwnPatientId(req.user);
+      if (!ownId || String(ownId) !== req.params.patientId) {
+        return res.status(403).json({ message: 'Not authorized to view these records' });
+      }
+    }
+
     const records = await Record.find({ patient: req.params.patientId })
       .populate('doctor', 'name specialization')
       .populate('appointment', 'date time')
@@ -38,6 +48,14 @@ export const getRecord = async (req, res) => {
       .populate('doctor', 'name specialization')
       .populate('appointment', 'date time reason');
     if (!record) return res.status(404).json({ message: 'Record not found' });
+
+    if (!STAFF_ROLES.includes(req.user.role)) {
+      const ownId = await getOwnPatientId(req.user);
+      if (!ownId || String(record.patient._id) !== String(ownId)) {
+        return res.status(403).json({ message: 'Not authorized to view this record' });
+      }
+    }
+
     res.json(record);
   } catch (error) {
     res.status(500).json({ message: error.message });

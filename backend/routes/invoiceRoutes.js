@@ -9,10 +9,10 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-  .get(getInvoices)
+  .get(authorize('admin', 'receptionist', 'patient'), getInvoices)
   .post(authorize('admin', 'receptionist'), createInvoice);
 
-router.get('/:id', getInvoice);
+router.get('/:id', authorize('admin', 'receptionist', 'patient'), getInvoice);
 router.put('/:id/pay', authorize('admin', 'receptionist'), payInvoice);
 
 export default router;

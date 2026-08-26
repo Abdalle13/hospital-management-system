@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const doctorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    image: { type: String, default: '' },
     specialization: { type: String, required: true },
     phone: { type: String, required: true },
     email: { type: String, lowercase: true, trim: true },

@@ -4,11 +4,12 @@ import {
   requestPublicAppointment, getAppointmentRequests, updateAppointmentRequestStatus
 } from '../controllers/appointmentController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
+import { publicRequestLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
 // Public route for appointment requests
-router.post('/public-request', requestPublicAppointment);
+router.post('/public-request', publicRequestLimiter, requestPublicAppointment);
 
 router.use(protect);
 

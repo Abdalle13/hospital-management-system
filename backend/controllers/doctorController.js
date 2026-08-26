@@ -36,7 +36,7 @@ export const getDoctor = async (req, res) => {
 // @route   POST /api/doctors
 export const createDoctor = async (req, res) => {
   try {
-    const { name, email, phone, specialization, bio, consultationFee, schedule } = req.body;
+    const { name, email, phone, specialization, bio, consultationFee, schedule, image } = req.body;
 
     // 1. Check if user already exists
     const userExists = await User.findOne({ email });
@@ -61,6 +61,7 @@ export const createDoctor = async (req, res) => {
       bio,
       consultationFee,
       schedule,
+      image,
       userId: user._id
     });
 

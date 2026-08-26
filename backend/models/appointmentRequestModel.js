@@ -4,6 +4,7 @@ const appointmentRequestSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     phone: { type: String, required: true },
+    email: { type: String, default: '' },
     department: { type: String, required: true },
     date: { type: Date, required: true },
     time: { type: String, required: true },
@@ -15,6 +16,8 @@ const appointmentRequestSchema = new mongoose.Schema(
       default: 'Pending',
     },
     patient: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient' }, // Optional, if they are logged in
+    doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' }, // Optional, set when requested from a specific doctor's profile
+    appointment: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' }, // Set once confirmed into a real appointment
   },
   { timestamps: true }
 );

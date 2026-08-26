@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const medicineSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    image: { type: String, default: '' },
     category: { type: String, required: true },
     stock: { type: Number, required: true, default: 0 },
     lowStockThreshold: { type: Number, default: 10 },

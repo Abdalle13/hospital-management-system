@@ -1,4 +1,5 @@
 import Invoice from '../models/invoiceModel.js';
+import getOwnPatientId from '../utils/getOwnPatientId.js';
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -7,7 +8,13 @@ export const getInvoices = async (req, res) => {
     const { status, patientId } = req.query;
     let query = {};
     if (status) query.paymentStatus = status;
-    if (patientId) query.patient = patientId;
+
+    if (req.user.role === 'patient') {
+      // Ignore any patientId the client sends — patients only ever see their own bills.
+      query.patient = await getOwnPatientId(req.user) || null;
+    } else if (patientId) {
+      query.patient = patientId;
+    }
 
     const invoices = await Invoice.find(query)
       .populate('patient', 'name phone')
@@ -28,6 +35,14 @@ export const getInvoice = async (req, res) => {
       .populate('doctor', 'name specialization')
       .populate('appointment', 'date time reason');
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    if (req.user.role === 'patient') {
+      const ownId = await getOwnPatientId(req.user);
+      if (!ownId || String(invoice.patient._id) !== String(ownId)) {
+        return res.status(403).json({ message: 'Not authorized to view this invoice' });
+      }
+    }
+
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-  .get(getMedicines)
+  .get(authorize('admin', 'doctor', 'receptionist'), getMedicines)
   .post(authorize('admin', 'doctor', 'receptionist'), addMedicine);
 
 router.route('/:id')

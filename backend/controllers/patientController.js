@@ -1,4 +1,42 @@
 import Patient from '../models/patientModel.js';
+import User from '../models/userModel.js';
+
+// @desc    Get logged-in patient's own profile
+// @route   GET /api/patients/me
+export const getMyPatientProfile = async (req, res) => {
+  try {
+    let patient = await Patient.findOne({ userId: req.user._id });
+    if (!patient) patient = await Patient.findOne({ email: req.user.email });
+    if (!patient) return res.status(404).json({ message: 'Patient profile not found' });
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update logged-in patient's own profile
+// @route   PUT /api/patients/me
+export const updateMyPatientProfile = async (req, res) => {
+  try {
+    let patient = await Patient.findOne({ userId: req.user._id });
+    if (!patient) patient = await Patient.findOne({ email: req.user.email });
+    if (!patient) return res.status(404).json({ message: 'Patient profile not found' });
+
+    const { age, gender, bloodType, phone, address, emergencyContact, allergies } = req.body;
+    if (age !== undefined) patient.age = age;
+    if (gender !== undefined) patient.gender = gender;
+    if (bloodType !== undefined) patient.bloodType = bloodType;
+    if (phone !== undefined) patient.phone = phone;
+    if (address !== undefined) patient.address = address;
+    if (emergencyContact !== undefined) patient.emergencyContact = emergencyContact;
+    if (allergies !== undefined) patient.allergies = allergies;
+
+    await patient.save();
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // @desc    Get all patients
 // @route   GET /api/patients
@@ -48,10 +86,23 @@ export const createPatient = async (req, res) => {
 // @route   PUT /api/patients/:id
 export const updatePatient = async (req, res) => {
   try {
-    const patient = await Patient.findByIdAndUpdate(req.params.id, req.body, {
+    const { password, ...patientData } = req.body;
+    const patient = await Patient.findByIdAndUpdate(req.params.id, patientData, {
       new: true, runValidators: true,
     });
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    if (password) {
+      if (!patient.userId) {
+        return res.status(400).json({ message: 'This patient has no portal login account to update' });
+      }
+      const user = await User.findById(patient.userId);
+      if (user) {
+        user.password = password;
+        await user.save();
+      }
+    }
+
     res.json(patient);
   } catch (error) {
     res.status(500).json({ message: error.message });

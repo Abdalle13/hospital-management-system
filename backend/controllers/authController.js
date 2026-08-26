@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/userModel.js';
 import Patient from '../models/patientModel.js';
+import sendEmail from '../utils/sendEmail.js';
+import { passwordResetEmail } from '../utils/emailTemplates.js';
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -35,6 +38,7 @@ export const register = async (req, res) => {
         phone: user.phone,
         age: 0, // Default age, can be updated later
         gender: 'Other', // Default
+        userId: user._id,
       });
 
       res.status(201).json({
@@ -68,6 +72,67 @@ export const login = async (req, res) => {
 
     if (!user.isActive)
       return res.status(403).json({ message: 'Account is deactivated. Contact admin.' });
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      profilePicture: user.profilePicture,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Request a password reset link by email
+// @route   POST /api/auth/forgot-password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Please provide your email address' });
+
+    const genericMessage = { message: 'If an account exists for that email, a password reset link has been sent.' };
+
+    const user = await User.findOne({ email });
+    if (!user) return res.json(genericMessage);
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    user.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${rawToken}`;
+    sendEmail({ to: user.email, ...passwordResetEmail({ name: user.name, resetUrl }) });
+
+    res.json(genericMessage);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset password using a token from the forgot-password email
+// @route   PUT /api/auth/reset-password/:token
+export const resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6)
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    }).select('+resetPasswordToken +resetPasswordExpire');
+
+    if (!user) return res.status(400).json({ message: 'This reset link is invalid or has expired' });
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
 
     res.json({
       _id: user._id,

@@ -7,7 +7,7 @@ const patientSchema = new mongoose.Schema(
     gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },
     bloodType: {
       type: String,
-      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+      enum: ['Unknown', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
       default: 'Unknown',
     },
     phone: { type: String, required: true },
@@ -21,6 +21,7 @@ const patientSchema = new mongoose.Schema(
     allergies: [{ type: String }],
     notes: { type: String, default: '' },
     registeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );
