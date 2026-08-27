@@ -129,8 +129,6 @@ export const updateAppointmentRequestStatus = async (req, res) => {
           name: request.name,
           phone: request.phone,
           email: request.email,
-          age: 0,
-          gender: 'Other',
         });
       }
 

@@ -13,7 +13,7 @@ const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sun
 const SPECIALIZATIONS = ['Cardiology','Dermatology','General Medicine','Gynecology','Neurology','Oncology','Orthopedics','Pediatrics','Psychiatry','Radiology','Surgery','Urology'];
 
 const INITIAL_FORM = {
-  name: '', image: '', specialization: 'General Medicine', phone: '', email: '',
+  name: '', image: '', specialization: 'General Medicine', phone: '', email: '', password: '',
   bio: '', consultationFee: '', schedule: { days: ['Monday','Tuesday','Wednesday','Thursday','Friday'], startTime: '09:00', endTime: '17:00' },
 };
 
@@ -57,7 +57,12 @@ const DoctorsPage = () => {
         return;
       }
     } else {
-      await dispatch(createDoctor(form));
+      const result = await dispatch(createDoctor(form));
+      if (createDoctor.rejected.match(result)) {
+        setSaving(false);
+        setFormError(result.payload || 'Failed to create doctor');
+        return;
+      }
     }
     setSaving(false);
     setShowModal(false);
@@ -151,16 +156,14 @@ const DoctorsPage = () => {
             <Input id="d-fee" label="Consultation Fee ($)" type="number" value={form.consultationFee} onChange={(e) => setForm({ ...form, consultationFee: e.target.value })} />
             <Input id="d-phone" label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
             <Input id="d-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            {editDoctor && (
-              <Input
-                id="d-password"
-                label="New Password"
-                type="password"
-                value={form.password || ''}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Leave blank if you don't want to change"
-              />
-            )}
+            <Input
+              id="d-password"
+              label={editDoctor ? 'New Password' : 'Initial Password'}
+              type="password"
+              value={form.password || ''}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder={editDoctor ? "Leave blank if you don't want to change" : 'Defaults to doctor123 if empty'}
+            />
           </div>
           <Textarea id="d-bio" label="Bio / Notes" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
           <div>

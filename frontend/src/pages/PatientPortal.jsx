@@ -15,7 +15,7 @@ import { formatDate, formatCurrency } from '../utils/formatter';
 import { logout } from '../redux/slices/authSlice';
 
 const PROFILE_FORM_DEFAULTS = {
-  age: '', gender: 'Other', bloodType: 'Unknown', phone: '', address: '',
+  age: '', gender: 'Male', bloodType: 'Unknown', phone: '', address: '',
   emergencyContact: { name: '', phone: '', relationship: '' },
 };
 
@@ -120,7 +120,7 @@ const PatientPortal = () => {
       const { data: profile } = await api.get('/patients/me');
       setProfileForm({
         age: profile.age ?? '',
-        gender: profile.gender || 'Other',
+        gender: profile.gender || 'Male',
         bloodType: profile.bloodType || 'Unknown',
         phone: profile.phone || '',
         address: profile.address || '',
@@ -635,7 +635,7 @@ const PatientPortal = () => {
           <div className="grid grid-cols-2 gap-4">
             <Input id="pp-age" label="Age" type="number" value={profileForm.age} onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })} />
             <Select id="pp-gender" label="Gender" value={profileForm.gender} onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}>
-              <option>Male</option><option>Female</option><option>Other</option>
+              <option>Male</option><option>Female</option>
             </Select>
             <Select id="pp-blood" label="Blood Type" value={profileForm.bloodType} onChange={(e) => setProfileForm({ ...profileForm, bloodType: e.target.value })}>
               {['Unknown', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => <option key={b}>{b}</option>)}

@@ -7,7 +7,11 @@ const patientSchema = new mongoose.Schema(
     // an age at signup (the public form stays minimal); they fill it in later
     // via their profile. Staff intake still enforces it via the form itself.
     age: { type: Number },
-    gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },
+    // Not required at the schema level for the same reason as age — walk-in
+    // records created without an interview (e.g. from a phone booking) may
+    // not have it yet; the intake and self-registration forms only offer
+    // Male/Female as real choices.
+    gender: { type: String, enum: ['Male', 'Female'] },
     bloodType: {
       type: String,
       enum: ['Unknown', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],

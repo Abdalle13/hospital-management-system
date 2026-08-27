@@ -50,7 +50,6 @@ export const register = async (req, res) => {
           name: user.name,
           email: user.email,
           phone: user.phone,
-          gender: 'Other',
           userId: user._id,
         });
       }

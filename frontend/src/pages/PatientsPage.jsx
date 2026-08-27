@@ -90,7 +90,7 @@ const PatientsPage = () => {
         </div>
         <select className="input-field sm:w-36" value={filterGender} onChange={(e) => setFilterGender(e.target.value)}>
           <option value="">All Genders</option>
-          <option>Male</option><option>Female</option><option>Other</option>
+          <option>Male</option><option>Female</option>
         </select>
         <select className="input-field sm:w-36" value={filterBlood} onChange={(e) => setFilterBlood(e.target.value)}>
           <option value="">All Blood Types</option>
@@ -162,7 +162,7 @@ const PatientsPage = () => {
             <Input id="p-name" label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
             <Input id="p-age" label="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required />
             <Select id="p-gender" label="Gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-              <option>Male</option><option>Female</option><option>Other</option>
+              <option>Male</option><option>Female</option>
             </Select>
             <Select id="p-blood" label="Blood Type" value={form.bloodType} onChange={(e) => setForm({ ...form, bloodType: e.target.value })}>
               {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((b) => <option key={b}>{b}</option>)}

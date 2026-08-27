@@ -36,18 +36,19 @@ export const getDoctor = async (req, res) => {
 // @route   POST /api/doctors
 export const createDoctor = async (req, res) => {
   try {
-    const { name, email, phone, specialization, bio, consultationFee, schedule, image } = req.body;
+    const { name, email, phone, specialization, bio, consultationFee, schedule, image, password } = req.body;
 
     // 1. Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'A user with this email already exists' });
 
     // 2. Create User account for the doctor
-    // Default password is 'doctor123' - Admin should tell this to the doctor
+    // Falls back to 'doctor123' if admin doesn't set one - admin should tell
+    // the doctor whichever password ends up being used.
     const user = await User.create({
       name,
       email,
-      password: 'doctor123',
+      password: password || 'doctor123',
       phone,
       role: 'doctor'
     });
