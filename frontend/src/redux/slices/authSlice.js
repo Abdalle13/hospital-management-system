@@ -66,6 +66,15 @@ const authSlice = createSlice({
       state.error = null;
     },
     clearError: (state) => { state.error = null; },
+    // For when the logged-in user's own record gets edited through a
+    // different page (e.g. admin editing themselves in Staff Management) —
+    // keeps the cached session (and anything reading it, like the sidebar)
+    // in sync without forcing a re-login.
+    updateLocalUser: (state, action) => {
+      if (!state.user) return;
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem('user', JSON.stringify(state.user));
+    },
   },
   extraReducers: (builder) => {
     const pending = (state) => { state.loading = true; state.error = null; };
@@ -89,5 +98,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, updateLocalUser } = authSlice.actions;
 export default authSlice.reducer;

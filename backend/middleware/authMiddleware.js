@@ -19,6 +19,24 @@ export const protect = async (req, res, next) => {
   }
 };
 
+// Attaches req.user when a valid token is present, but never blocks the
+// request — for routes that must stay open to anonymous callers while still
+// linking the request to a logged-in user when one exists.
+export const optionalAuth = async (req, res, next) => {
+  const token = req.headers.authorization?.startsWith('Bearer')
+    ? req.headers.authorization.split(' ')[1]
+    : null;
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select('-password');
+  } catch (error) {
+    // Invalid/expired token on an optional route — proceed as anonymous.
+  }
+  next();
+};
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

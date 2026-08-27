@@ -26,13 +26,14 @@ const DoctorDetailPage = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     dispatch(fetchDoctor(id));
     dispatch(fetchAppointments({ doctorId: id }));
   }, [dispatch, id]);
 
-  const openEdit = () => { setForm({ ...doctor }); setShowEdit(true); };
+  const openEdit = () => { setForm({ ...doctor, password: '' }); setFormError(''); setShowEdit(true); };
 
   const toggleDay = (day) => {
     const days = form.schedule.days.includes(day)
@@ -44,7 +45,13 @@ const DoctorDetailPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    await dispatch(updateDoctor({ id: doctor._id, ...form }));
+    setFormError('');
+    const result = await dispatch(updateDoctor({ id: doctor._id, ...form }));
+    if (updateDoctor.rejected.match(result)) {
+      setSaving(false);
+      setFormError(result.payload || 'Failed to update doctor');
+      return;
+    }
     setSaving(false);
     setShowEdit(false);
   };
@@ -141,6 +148,9 @@ const DoctorDetailPage = () => {
       <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit Doctor" size="lg">
         {form && (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {formError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{formError}</div>
+            )}
             <ImageUpload label="Doctor Photo" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div className="grid grid-cols-2 gap-4">
               <Input id="dd-name" label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
@@ -150,6 +160,14 @@ const DoctorDetailPage = () => {
               <Input id="dd-fee" label="Consultation Fee ($)" type="number" value={form.consultationFee} onChange={(e) => setForm({ ...form, consultationFee: e.target.value })} />
               <Input id="dd-phone" label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
               <Input id="dd-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                id="dd-password"
+                label="New Password"
+                type="password"
+                value={form.password || ''}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank if you don't want to change"
+              />
             </div>
             <Textarea id="dd-bio" label="Bio / Notes" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
             <div>

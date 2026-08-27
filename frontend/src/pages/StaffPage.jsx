@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import { UserPlus, Search, Trash2, Edit, ShieldCheck, Mail, Phone, Power } from 'lucide-react';
 import api from '../utils/api';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input, { Select } from '../components/ui/Input';
+import { updateLocalUser } from '../redux/slices/authSlice';
 
 const StaffPage = () => {
+  const dispatch = useDispatch();
+  const { user: loggedInUser } = useSelector((s) => s.auth);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,7 +52,12 @@ const StaffPage = () => {
     setSaving(true);
     try {
       if (editStaff) {
-        await api.put(`/staff/${editStaff._id}`, { name: formData.name, phone: formData.phone, role: formData.role });
+        const payload = { name: formData.name, email: formData.email, phone: formData.phone, role: formData.role };
+        if (formData.password) payload.password = formData.password;
+        await api.put(`/staff/${editStaff._id}`, payload);
+        if (loggedInUser && editStaff._id === loggedInUser._id) {
+          dispatch(updateLocalUser({ name: formData.name, email: formData.email, phone: formData.phone, role: formData.role }));
+        }
       } else {
         await api.post('/staff', formData);
       }
@@ -188,7 +197,6 @@ const StaffPage = () => {
             label="Email Address"
             type="email"
             required
-            disabled={!!editStaff}
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
@@ -206,15 +214,13 @@ const StaffPage = () => {
             <option value="receptionist">Receptionist</option>
             <option value="admin">Administrator</option>
           </Select>
-          {!editStaff && (
-            <Input
-              label="Initial Password"
-              type="password"
-              placeholder="Defaults to staff123 if empty"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-          )}
+          <Input
+            label={editStaff ? 'New Password' : 'Initial Password'}
+            type="password"
+            placeholder={editStaff ? "Leave blank if you don't want to change" : 'Defaults to staff123 if empty'}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          />
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="ghost" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saving}>{editStaff ? 'Save Changes' : 'Create Account'}</Button>

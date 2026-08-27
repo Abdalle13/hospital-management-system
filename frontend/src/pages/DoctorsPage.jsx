@@ -29,13 +29,14 @@ const DoctorsPage = () => {
   const [editDoctor, setEditDoctor] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     dispatch(fetchDoctors({ search, specialization: filterSpec }));
   }, [dispatch, search, filterSpec]);
 
-  const openAdd = () => { setEditDoctor(null); setForm(INITIAL_FORM); setShowModal(true); };
-  const openEdit = (d) => { setEditDoctor(d); setForm({ ...d }); setShowModal(true); };
+  const openAdd = () => { setEditDoctor(null); setForm(INITIAL_FORM); setFormError(''); setShowModal(true); };
+  const openEdit = (d) => { setEditDoctor(d); setForm({ ...d, password: '' }); setFormError(''); setShowModal(true); };
 
   const toggleDay = (day) => {
     const days = form.schedule.days.includes(day)
@@ -47,8 +48,17 @@ const DoctorsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    if (editDoctor) await dispatch(updateDoctor({ id: editDoctor._id, ...form }));
-    else await dispatch(createDoctor(form));
+    setFormError('');
+    if (editDoctor) {
+      const result = await dispatch(updateDoctor({ id: editDoctor._id, ...form }));
+      if (updateDoctor.rejected.match(result)) {
+        setSaving(false);
+        setFormError(result.payload || 'Failed to update doctor');
+        return;
+      }
+    } else {
+      await dispatch(createDoctor(form));
+    }
     setSaving(false);
     setShowModal(false);
   };
@@ -129,6 +139,9 @@ const DoctorsPage = () => {
       {/* Add/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editDoctor ? 'Edit Doctor' : 'Add New Doctor'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{formError}</div>
+          )}
           <ImageUpload label="Doctor Photo" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           <div className="grid grid-cols-2 gap-4">
             <Input id="d-name" label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
@@ -138,6 +151,16 @@ const DoctorsPage = () => {
             <Input id="d-fee" label="Consultation Fee ($)" type="number" value={form.consultationFee} onChange={(e) => setForm({ ...form, consultationFee: e.target.value })} />
             <Input id="d-phone" label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
             <Input id="d-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            {editDoctor && (
+              <Input
+                id="d-password"
+                label="New Password"
+                type="password"
+                value={form.password || ''}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank if you don't want to change"
+              />
+            )}
           </div>
           <Textarea id="d-bio" label="Bio / Notes" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
           <div>

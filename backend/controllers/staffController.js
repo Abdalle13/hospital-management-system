@@ -50,6 +50,13 @@ export const updateStaff = async (req, res) => {
     user.name = req.body.name || user.name;
     user.phone = req.body.phone || user.phone;
 
+    if (req.body.email && req.body.email !== user.email) {
+      const emailTaken = await User.findOne({ email: req.body.email, _id: { $ne: user._id } });
+      if (emailTaken) return res.status(400).json({ message: 'A user with this email already exists' });
+      user.email = req.body.email;
+    }
+    if (req.body.password) user.password = req.body.password;
+
     await user.save();
     res.json(user);
   } catch (error) {

@@ -75,10 +75,31 @@ export const createDoctor = async (req, res) => {
 // @route   PUT /api/doctors/:id
 export const updateDoctor = async (req, res) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, {
+    const { password, ...doctorData } = req.body;
+
+    const doctor = await Doctor.findByIdAndUpdate(req.params.id, doctorData, {
       new: true, runValidators: true,
     });
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+
+    // The Doctor profile and its login User are separate documents — keep
+    // the login account's name/email/password in sync with what admin just
+    // edited, otherwise the doctor can't actually log in with the new email.
+    if (doctor.userId) {
+      const user = await User.findById(doctor.userId);
+      if (user) {
+        if (doctorData.email && doctorData.email !== user.email) {
+          const emailTaken = await User.findOne({ email: doctorData.email, _id: { $ne: user._id } });
+          if (emailTaken) return res.status(400).json({ message: 'A user with this email already exists' });
+          user.email = doctorData.email;
+        }
+        if (doctorData.name) user.name = doctorData.name;
+        if (doctorData.phone) user.phone = doctorData.phone;
+        if (password) user.password = password;
+        await user.save();
+      }
+    }
+
     res.json(doctor);
   } catch (error) {
     res.status(500).json({ message: error.message });

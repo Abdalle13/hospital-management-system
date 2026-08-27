@@ -75,7 +75,26 @@ export const getPatient = async (req, res) => {
 // @route   POST /api/patients
 export const createPatient = async (req, res) => {
   try {
-    const patient = await Patient.create({ ...req.body, registeredBy: req.user._id });
+    const { password, ...patientData } = req.body;
+
+    // A password means staff also want this patient to have portal login —
+    // otherwise it's a walk-in record with no account, same as before.
+    let userId;
+    if (password) {
+      if (!patientData.email) {
+        return res.status(400).json({ message: 'Email is required to create a portal login' });
+      }
+      const userExists = await User.findOne({ email: patientData.email });
+      if (userExists) return res.status(400).json({ message: 'A user with this email already exists' });
+
+      const user = await User.create({
+        name: patientData.name, email: patientData.email, password,
+        phone: patientData.phone, role: 'patient',
+      });
+      userId = user._id;
+    }
+
+    const patient = await Patient.create({ ...patientData, userId, registeredBy: req.user._id });
     res.status(201).json(patient);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -40,6 +40,7 @@ const PatientPortal = () => {
   const [loaded, setLoaded] = useState({ appointments: false, bills: false, records: false });
 
   const [fullAppointments, setFullAppointments] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
@@ -73,9 +74,14 @@ const PatientPortal = () => {
   useEffect(() => {
     if (activeTab === 'appointments' && !loaded.appointments) {
       setLoadingAppointments(true);
-      api.get('/appointments')
-        .then((r) => setFullAppointments(r.data))
-        .catch(() => setFullAppointments([]))
+      Promise.all([
+        api.get('/appointments').then((r) => r.data).catch(() => []),
+        api.get('/appointments/requests/me').then((r) => r.data).catch(() => []),
+      ])
+        .then(([appointments, requests]) => {
+          setFullAppointments(appointments);
+          setPendingRequests(requests.filter((r) => r.status === 'Pending'));
+        })
         .finally(() => { setLoadingAppointments(false); setLoaded((l) => ({ ...l, appointments: true })); });
     }
     if (activeTab === 'bills' && !loaded.bills) {
@@ -158,6 +164,7 @@ const PatientPortal = () => {
         message: requestForm.reason
       });
       setRequestStatus('success');
+      setLoaded((l) => ({ ...l, appointments: false })); // force a refetch so the new request shows up
       setTimeout(() => {
         setRequestStatus('idle');
         setRequestForm({ department: '', date: '', time: '09:00', reason: '' });
@@ -442,29 +449,59 @@ const PatientPortal = () => {
               <h3 className="text-lg font-black text-slate-900 tracking-tight">My Appointments</h3>
               {loadingAppointments ? (
                 <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>
-              ) : fullAppointments.length === 0 ? (
+              ) : fullAppointments.length === 0 && pendingRequests.length === 0 ? (
                 <div className="text-center py-16 text-slate-400">
                   <Calendar size={28} className="mx-auto mb-3 opacity-40" />
                   <p className="text-xs font-semibold">You have no appointments yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {fullAppointments.map((apt) => (
-                    <div key={apt._id} className="p-4 bg-slate-50 rounded-xl border border-slate-100/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{apt.doctor?.name}</p>
-                        <p className="text-xs font-bold text-slate-400">{apt.doctor?.specialization}</p>
-                        {apt.reason && <p className="text-xs text-slate-500 mt-1">{apt.reason}</p>}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right text-xs text-slate-500 font-bold">
-                          <p>{formatDate(apt.date)}</p>
-                          <p className="flex items-center gap-1 justify-end"><Clock size={12} /> {apt.time}</p>
-                        </div>
-                        <Badge status={apt.status} />
+                <div className="space-y-5">
+                  {pendingRequests.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pending Requests — awaiting confirmation</p>
+                      <div className="space-y-3">
+                        {pendingRequests.map((req) => (
+                          <div key={req._id} className="p-4 bg-amber-50/60 rounded-xl border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-black text-slate-900">{req.doctor ? `Dr. ${req.doctor.name}` : req.department}</p>
+                              <p className="text-xs font-bold text-slate-400">{req.doctor?.specialization || req.department}</p>
+                              {req.message && <p className="text-xs text-slate-500 mt-1">{req.message}</p>}
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right text-xs text-slate-500 font-bold">
+                                <p>{formatDate(req.date)}</p>
+                                <p className="flex items-center gap-1 justify-end"><Clock size={12} /> {req.time}</p>
+                              </div>
+                              <Badge status="Pending" />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
+                  {fullAppointments.length > 0 && (
+                    <div className="space-y-3">
+                      {pendingRequests.length > 0 && (
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirmed</p>
+                      )}
+                      {fullAppointments.map((apt) => (
+                        <div key={apt._id} className="p-4 bg-slate-50 rounded-xl border border-slate-100/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{apt.doctor?.name}</p>
+                            <p className="text-xs font-bold text-slate-400">{apt.doctor?.specialization}</p>
+                            {apt.reason && <p className="text-xs text-slate-500 mt-1">{apt.reason}</p>}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right text-xs text-slate-500 font-bold">
+                              <p>{formatDate(apt.date)}</p>
+                              <p className="flex items-center gap-1 justify-end"><Clock size={12} /> {apt.time}</p>
+                            </div>
+                            <Badge status={apt.status} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

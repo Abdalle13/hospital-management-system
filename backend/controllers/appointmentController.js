@@ -87,6 +87,21 @@ export const getAppointmentRequests = async (req, res) => {
   }
 };
 
+// @desc    Get the logged-in patient's own appointment requests
+// @route   GET /api/appointments/requests/me
+export const getMyAppointmentRequests = async (req, res) => {
+  try {
+    const patientId = await getOwnPatientId(req.user);
+    const query = patientId ? { patient: patientId } : { email: req.user.email };
+    const requests = await AppointmentRequest.find(query)
+      .populate('doctor', 'name specialization')
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Update appointment request status
 // @route   PUT /api/appointments/requests/:id/status
 export const updateAppointmentRequestStatus = async (req, res) => {
