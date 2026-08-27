@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserPlus, Search, Trash2, ShieldCheck, Mail, Phone, Power } from 'lucide-react';
+import { UserPlus, Search, Trash2, Edit, ShieldCheck, Mail, Phone, Power } from 'lucide-react';
 import api from '../utils/api';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
@@ -11,6 +11,7 @@ const StaffPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editStaff, setEditStaff] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', role: 'receptionist', password: '' });
   const [saving, setSaving] = useState(false);
 
@@ -30,16 +31,32 @@ const StaffPage = () => {
     fetchStaff();
   }, []);
 
+  const openAdd = () => {
+    setEditStaff(null);
+    setFormData({ name: '', email: '', phone: '', role: 'receptionist', password: '' });
+    setShowModal(true);
+  };
+
+  const openEdit = (member) => {
+    setEditStaff(member);
+    setFormData({ name: member.name, email: member.email, phone: member.phone, role: member.role, password: '' });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post('/staff', formData);
+      if (editStaff) {
+        await api.put(`/staff/${editStaff._id}`, { name: formData.name, phone: formData.phone, role: formData.role });
+      } else {
+        await api.post('/staff', formData);
+      }
       fetchStaff();
       setShowModal(false);
       setFormData({ name: '', email: '', phone: '', role: 'receptionist', password: '' });
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating staff member');
+      alert(error.response?.data?.message || 'Error saving staff member');
     }
     setSaving(false);
   };
@@ -76,7 +93,7 @@ const StaffPage = () => {
           <h2 className="text-2xl font-bold text-gray-900">Staff Management</h2>
           <p className="text-gray-500 text-sm">Manage Admins and Receptionists accounts</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={openAdd}>
           <UserPlus size={18} /> Add Staff Member
         </Button>
       </div>
@@ -120,14 +137,21 @@ const StaffPage = () => {
                 </div>
               </div>
               <div className="flex gap-1">
-                <button 
+                <button
+                  onClick={() => openEdit(member)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  title="Edit"
+                >
+                  <Edit size={18} />
+                </button>
+                <button
                   onClick={() => toggleStatus(member._id, member.isActive)}
                   className={`p-2 rounded-lg transition-colors ${member.isActive ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'}`}
                   title={member.isActive ? 'Deactivate' : 'Activate'}
                 >
                   <Power size={18} />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(member._id)}
                   className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
                   title="Remove"
@@ -151,46 +175,49 @@ const StaffPage = () => {
         ))}
       </div>
 
-      {/* Add Staff Modal */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add New Staff Member">
+      {/* Add/Edit Staff Modal */}
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editStaff ? 'Edit Staff Member' : 'Add New Staff Member'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input 
-            label="Full Name" 
-            required 
-            value={formData.name} 
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+          <Input
+            label="Full Name"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
-          <Input 
-            label="Email Address" 
-            type="email" 
-            required 
-            value={formData.email} 
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+          <Input
+            label="Email Address"
+            type="email"
+            required
+            disabled={!!editStaff}
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
-          <Input 
-            label="Phone Number" 
-            required 
-            value={formData.phone} 
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+          <Input
+            label="Phone Number"
+            required
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           />
-          <Select 
-            label="System Role" 
-            value={formData.role} 
+          <Select
+            label="System Role"
+            value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
           >
             <option value="receptionist">Receptionist</option>
             <option value="admin">Administrator</option>
           </Select>
-          <Input 
-            label="Initial Password" 
-            type="password" 
-            placeholder="Defaults to staff123 if empty"
-            value={formData.password} 
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
-          />
+          {!editStaff && (
+            <Input
+              label="Initial Password"
+              type="password"
+              placeholder="Defaults to staff123 if empty"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="ghost" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit" loading={saving}>Create Account</Button>
+            <Button type="submit" loading={saving}>{editStaff ? 'Save Changes' : 'Create Account'}</Button>
           </div>
         </form>
       </Modal>

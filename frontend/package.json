@@ -13,7 +13,6 @@
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.16.1",
     "framer-motion": "^12.38.0",
-    "imagekitio-react": "^4.3.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.16.0",

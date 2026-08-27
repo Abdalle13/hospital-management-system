@@ -14,11 +14,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Handle 401 globally — but only when the failing request actually carried a
+// token (a real session expiring). A login/register attempt never has one,
+// so a wrong password stays on the page and shows its own error instead of
+// being forced through a hard redirect.
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    const hadToken = Boolean(error.config?.headers?.Authorization);
+    if (error.response?.status === 401 && hadToken) {
       localStorage.removeItem('user');
       window.location.href = '/login';
     }

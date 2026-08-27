@@ -1,15 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { Activity, ArrowLeft, Search, Stethoscope, Clock, ShieldCheck } from 'lucide-react';
+import { Search, Stethoscope, Clock, ShieldCheck, User, Phone, Mail, Calendar } from 'lucide-react';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 import api from '../utils/api';
 
+const generateTimeSlots = (start, end, stepMinutes = 30) => {
+  if (!start || !end) return [];
+  const slots = [];
+  let [h, m] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+  while (h < endH || (h === endH && m < endM)) {
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    m += stepMinutes;
+    if (m >= 60) { m -= 60; h += 1; }
+  }
+  return slots;
+};
+
+const weekdayOf = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+};
+
 const PublicDoctorsPage = () => {
-  const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  const [bookingDoctor, setBookingDoctor] = useState(null);
+  const [bookingForm, setBookingForm] = useState({ name: '', phone: '', email: '', date: '', time: '' });
+  const [bookingStatus, setBookingStatus] = useState('idle');
+  const [bookingError, setBookingError] = useState('');
 
   useEffect(() => {
     api.get('/doctors')
@@ -20,36 +46,52 @@ const PublicDoctorsPage = () => {
       .catch(() => setLoading(false));
   }, []);
 
+  const timeSlots = bookingDoctor ? generateTimeSlots(bookingDoctor.schedule?.startTime, bookingDoctor.schedule?.endTime) : [];
+  const workingDays = bookingDoctor?.schedule?.days || [];
+  const selectedWeekday = weekdayOf(bookingForm.date);
+  const dateOnWrongDay = bookingForm.date && workingDays.length > 0 && !workingDays.includes(selectedWeekday);
+
+  const openBooking = (doc) => {
+    setBookingDoctor(doc);
+    setBookingForm({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '', date: '', time: doc.schedule?.startTime || '' });
+    setBookingStatus('idle');
+    setBookingError('');
+  };
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    if (dateOnWrongDay) return;
+    setBookingStatus('loading');
+    setBookingError('');
+    try {
+      await api.post('/appointments/public-request', {
+        name: bookingForm.name,
+        phone: bookingForm.phone,
+        email: bookingForm.email,
+        department: bookingDoctor.specialization,
+        date: bookingForm.date,
+        time: bookingForm.time,
+        doctorId: bookingDoctor._id,
+        message: `Requested doctor: Dr. ${bookingDoctor.name}`,
+      });
+      setBookingStatus('success');
+    } catch (error) {
+      setBookingStatus('error');
+      setBookingError(error.response?.data?.message || 'Failed to send request. Please try again.');
+    }
+  };
+
   const filteredDoctors = doctors.filter(doc => 
     doc.name.toLowerCase().includes(search.toLowerCase()) ||
     doc.specialization.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <Activity size={18} className="text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900 tracking-tight">SmartClinic</span>
-            </div>
-          </div>
-          <Button onClick={() => navigate('/login')}>Sign In</Button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
 
       {/* Hero / Search */}
-      <section className="bg-emerald-600 py-16 text-white relative overflow-hidden">
+      <section className="bg-emerald-600 pt-36 pb-16 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <h1 className="text-4xl font-extrabold mb-4">Our Medical Specialists</h1>
@@ -71,7 +113,7 @@ const PublicDoctorsPage = () => {
       </section>
 
       {/* Doctors Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 relative z-20">
         {loading ? (
           <div className="grid md:grid-cols-3 gap-8">
             {[1,2,3,4,5,6].map(i => (
@@ -79,21 +121,27 @@ const PublicDoctorsPage = () => {
             ))}
           </div>
         ) : filteredDoctors.length > 0 ? (
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {filteredDoctors.map((doc, i) => (
-              <motion.div 
+              <motion.div
                 key={doc._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group"
+                className="bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]"
               >
                 <div className="h-48 bg-gray-100 relative overflow-hidden">
-                  <img 
-                    src={`https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80`} 
-                    alt={doc.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {doc.image ? (
+                    <img
+                      src={doc.image}
+                      alt={doc.name}
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-emerald-100 text-emerald-700 font-bold text-4xl">
+                      {doc.name?.[0]?.toUpperCase()}
+                    </div>
+                  )}
                   <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold text-emerald-600 uppercase">
                     {doc.specialization}
                   </div>
@@ -116,9 +164,9 @@ const PublicDoctorsPage = () => {
                     </div>
                   </div>
 
-                  <Button 
+                  <Button
                     className="w-full py-2.5 rounded-xl text-sm"
-                    onClick={() => navigate('/register')}
+                    onClick={() => openBooking(doc)}
                   >
                     Book Appointment
                   </Button>
@@ -137,6 +185,78 @@ const PublicDoctorsPage = () => {
           </div>
         )}
       </main>
+
+      <Footer />
+
+      {/* Booking Modal */}
+      <Modal isOpen={!!bookingDoctor} onClose={() => setBookingDoctor(null)} title={bookingDoctor ? `Book with Dr. ${bookingDoctor.name}` : ''} size="sm">
+        {bookingStatus === 'success' ? (
+          <div className="py-4 text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto mb-4">
+              <ShieldCheck size={32} />
+            </div>
+            <h4 className="text-lg font-bold text-gray-900 mb-2">Request Sent!</h4>
+            <p className="text-gray-600 text-sm">Our reception team will contact you shortly to confirm your exact appointment time.</p>
+            <Button className="mt-6 w-full" onClick={() => setBookingDoctor(null)}>Close</Button>
+          </div>
+        ) : (
+          <form onSubmit={handleBookingSubmit} className="space-y-4">
+            <p className="text-sm text-gray-500 -mt-1">{bookingDoctor?.specialization} · No account needed, our team will call to confirm.</p>
+            {workingDays.length > 0 && (
+              <p className="text-xs bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2">
+                Available {workingDays.join(', ')} · {bookingDoctor.schedule.startTime}–{bookingDoctor.schedule.endTime}
+              </p>
+            )}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">Full Name</label>
+              <div className="relative">
+                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input required type="text" className="input-field pl-10" placeholder="John Doe" value={bookingForm.name} onChange={(e) => setBookingForm({ ...bookingForm, name: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">Phone Number</label>
+              <div className="relative">
+                <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input required type="tel" className="input-field pl-10" placeholder="061XXXXXXX" value={bookingForm.phone} onChange={(e) => setBookingForm({ ...bookingForm, phone: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">Email <span className="text-gray-400 font-normal">(optional, for confirmation)</span></label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="email" className="input-field pl-10" placeholder="you@example.com" value={bookingForm.email} onChange={(e) => setBookingForm({ ...bookingForm, email: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">Preferred Date</label>
+                <div className="relative">
+                  <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input required type="date" min={new Date().toISOString().split('T')[0]} className="input-field pl-10" value={bookingForm.date} onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">Preferred Time</label>
+                <div className="relative">
+                  <Clock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <select required className="input-field pl-10" value={bookingForm.time} onChange={(e) => setBookingForm({ ...bookingForm, time: e.target.value })}>
+                    {timeSlots.length === 0 && <option value="">No hours set</option>}
+                    {timeSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {dateOnWrongDay && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                Dr. {bookingDoctor.name} doesn't work on {selectedWeekday}s. Pick one of: {workingDays.join(', ')}.
+              </p>
+            )}
+            {bookingStatus === 'error' && <p className="text-xs text-red-500">{bookingError}</p>}
+            <Button type="submit" loading={bookingStatus === 'loading'} disabled={dateOnWrongDay} className="w-full py-3 mt-2">Submit Request</Button>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -1,70 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../redux/slices/authSlice';
+import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-
 
 import {
   Activity, ArrowRight, ShieldCheck, HeartPulse,
   Users, Stethoscope, Microscope, TestTube,
-  MapPin, Phone, Mail, Clock, Star, Quote, Calendar, User, ChevronRight, LogOut
-
+  Phone, Mail, Clock, Star, Quote, Calendar, User, ChevronRight, Check,
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input, { Select } from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 import api from '../utils/api';
-
-const Facebook = ({ size = 24, ...props }) => (
-  <svg width={size} height={size} {...props} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1V12h3l-.5 3h-2.5v6.8c4.56-.93 8-4.96 8-9.8z" />
-  </svg>
-);
-const XLogo = ({ size = 24, ...props }) => (
-  <svg width={size} height={size} {...props} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z" />
-  </svg>
-);
-const Instagram = ({ size = 24, ...props }) => (
-  <svg width={size} height={size} {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-  </svg>
-);
-const TikTok = ({ size = 24, ...props }) => (
-  <svg width={size} height={size} {...props} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.06-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.03 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.03-1.03-2.28-1.39-3.41-4.09-2.61-6.6.35-1.08 1.02-2.05 1.89-2.76 1.19-.94 2.73-1.4 4.25-1.31.03.01.06.01.08.02V12.7c-1.05-.13-2.15.11-3.03.73-.83.56-1.35 1.48-1.47 2.47-.13 1.05.21 2.13.91 2.91.73.83 1.8 1.33 2.9 1.36 1.06.01 2.09-.43 2.8-1.22.7-.8.98-1.89.85-2.94-.02-2.11 0-4.22 0-6.33V0z" />
-  </svg>
-);
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth);
   const [featuredDoctors, setFeaturedDoctors] = useState([]);
-  const [bookingForm, setBookingForm] = useState({ name: '', phone: '', department: '', date: '', time: '09:00' });
+  const [bookingForm, setBookingForm] = useState({ name: '', phone: '', email: '', department: '', date: '', time: '09:00' });
   const [bookingStatus, setBookingStatus] = useState(null);
-
-  // Fetch doctors for showcase
-  const navLinks = [
-    { name: 'About Us', href: '#about' },
-    { name: 'Our Doctors', href: '#doctors' },
-    { name: 'Services', href: '#services' },
-    { name: 'Reviews', href: '#reviews' },
-  ];
-
-  const handlePatientPortal = () => {
-    if (user && user.role === 'patient') {
-      navigate('/portal');
-    } else {
-      navigate('/login');
-    }
-  };
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-  };
-
+  const [activeService, setActiveService] = useState(null);
 
   useEffect(() => {
     api.get('/doctors')
@@ -78,13 +35,14 @@ const LandingPage = () => {
       await api.post('/appointments/public-request', {
         name: bookingForm.name,
         phone: bookingForm.phone,
+        email: bookingForm.email,
         department: bookingForm.department,
         date: bookingForm.date,
         time: bookingForm.time,
         message: 'Request from Landing Page'
       });
       setBookingStatus('success');
-      setBookingForm({ name: '', phone: '', department: '', date: '', time: '09:00' });
+      setBookingForm({ name: '', phone: '', email: '', department: '', date: '', time: '09:00' });
       setTimeout(() => setBookingStatus(null), 5000);
     } catch (error) {
       console.error('Booking error:', error);
@@ -93,68 +51,50 @@ const LandingPage = () => {
   };
 
   const services = [
-    { icon: Stethoscope, title: 'General Medicine', desc: 'Comprehensive care for common illnesses and preventive health.', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { icon: Users, title: 'Pediatrics', desc: 'Specialized healthcare and immunizations for infants and children.', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { icon: HeartPulse, title: 'Cardiology', desc: 'Expert heart care, ECGs, and cardiovascular disease management.', color: 'text-red-500', bg: 'bg-red-50' },
-    { icon: Microscope, title: 'Laboratory', desc: 'Advanced diagnostic testing with quick and accurate results.', color: 'text-purple-500', bg: 'bg-purple-50' },
-    { icon: TestTube, title: 'Pharmacy', desc: 'In-house pharmacy stocked with genuine and certified medicines.', color: 'text-amber-500', bg: 'bg-amber-50' },
-    { icon: Activity, title: 'Emergency', desc: '24/7 urgent care and trauma management by expert teams.', color: 'text-rose-500', bg: 'bg-rose-50' },
+    {
+      icon: Stethoscope, title: 'General Medicine', desc: 'Comprehensive care for common illnesses and preventive health.', color: 'text-emerald-500', bg: 'bg-emerald-50',
+      details: 'Our general medicine team handles everyday health concerns and long-term preventive care — from colds and infections to chronic condition management like diabetes and hypertension.',
+      included: ['Routine check-ups & physical exams', 'Chronic disease management', 'Preventive screenings & vaccinations', 'Referrals to specialists when needed'],
+    },
+    {
+      icon: Users, title: 'Pediatrics', desc: 'Specialized healthcare and immunizations for infants and children.', color: 'text-blue-500', bg: 'bg-blue-50',
+      details: 'Dedicated pediatric care covering your child\'s growth and development from infancy through adolescence, in a comfortable, child-friendly environment.',
+      included: ['Newborn & well-child visits', 'Immunization schedules', 'Growth & development tracking', 'Treatment for common childhood illnesses'],
+    },
+    {
+      icon: HeartPulse, title: 'Cardiology', desc: 'Expert heart care, ECGs, and cardiovascular disease management.', color: 'text-red-500', bg: 'bg-red-50',
+      details: 'Our cardiology specialists diagnose and manage heart conditions using modern diagnostic equipment, from routine screening to ongoing care for cardiovascular disease.',
+      included: ['ECG & cardiac diagnostics', 'Hypertension & cholesterol management', 'Heart disease risk assessment', 'Ongoing cardiovascular monitoring'],
+    },
+    {
+      icon: Microscope, title: 'Laboratory', desc: 'Advanced diagnostic testing with quick and accurate results.', color: 'text-purple-500', bg: 'bg-purple-50',
+      details: 'Our in-house lab delivers accurate diagnostic results quickly, so your doctor can start the right treatment without unnecessary delay.',
+      included: ['Blood panels & chemistry tests', 'Urinalysis & microbiology', 'Rapid results shared via your portal', 'Doctor-ordered specialty testing'],
+    },
+    {
+      icon: TestTube, title: 'Pharmacy', desc: 'In-house pharmacy stocked with genuine and certified medicines.', color: 'text-amber-500', bg: 'bg-amber-50',
+      details: 'Fill your prescriptions on-site right after your appointment — our pharmacy stocks certified medication and tracks inventory to avoid stockouts.',
+      included: ['On-site prescription fulfillment', 'Certified, quality-checked medicines', 'Guidance from licensed pharmacists', 'Stock availability tracking'],
+    },
+    {
+      icon: Activity, title: 'Emergency', desc: '24/7 urgent care and trauma management by expert teams.', color: 'text-rose-500', bg: 'bg-rose-50',
+      details: 'Our emergency team is available around the clock for urgent medical needs, staffed and equipped to stabilize and treat time-critical conditions.',
+      included: ['24/7 availability, every day of the year', 'Trauma & urgent care management', 'Rapid triage by experienced staff', 'Direct coordination with specialists'],
+    },
   ];
 
   const testimonials = [
     { name: 'Sarah Ali', role: 'Patient', text: 'SmartClinic provides the best healthcare experience I have ever had. The doctors are highly professional and the facility is incredibly clean and modern.', rating: 5 },
     { name: 'Axmed Xasan', role: 'Bukaanka', text: 'Habka ballansashada online-ka ah waa mid aad u fudud oo nolosha sahlaya. Ma aanan sugin saf dheer. Dhaqtarka carruurta si wanaagsan ayuu u daryeelay gabadhayda. Aad ayaan ugu talinayaa!', rating: 5 },
     { name: 'Faadumo Nuur', role: 'Bukaanka', text: 'Natiijada baaritaankayga shaybaarka waxaan si toos ah uga helay portal-ka bukaanka. Degdegga iyo hufnaanta SmartClinic waa mid aan magaalada looga helin meel kale.', rating: 5 },
+    { name: 'James Mwangi', role: 'Patient', text: 'From booking to billing, everything just works. I could see my invoice and pay it the same day my doctor marked the visit complete.', rating: 5 },
+    { name: 'Hodan Cabdi', role: 'Bukaanka', text: 'Waxaan ka helay ballan degdeg ah markii ay ilmahaygu qandho qabsatay. Kooxda dhakhaatiirta aad bay u naxariista badan yihiin.', rating: 5 },
+    { name: 'Michael Osei', role: 'Patient', text: 'The pharmacy on-site saved me a second trip across town. Prescription was ready before I even left the consultation room.', rating: 4 },
   ];
 
   return (
     <div className="min-h-screen bg-white selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
-      {/* Navigation */}
-      <nav className="fixed w-full top-0 bg-white/90 backdrop-blur-md z-50 border-b border-gray-100 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link 
-            to="/" 
-            className="flex items-center gap-3 cursor-pointer group" 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
-              <Activity size={22} className="text-white" />
-            </div>
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">SmartClinic</span>
-          </Link>
-
-
-
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#about" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">About Us</a>
-            <a href="#doctors" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Our Doctors</a>
-            <a href="#services" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Services</a>
-            <a href="#reviews" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Reviews</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {user ? (
-              <>
-                <Button onClick={handlePatientPortal} className="shadow-lg shadow-emerald-500/20">Go to Portal</Button>
-                <button 
-                  onClick={handleLogout} 
-                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-semibold hover:bg-rose-100 transition-colors border border-rose-100"
-                >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
-              </>
-            ) : (
-
-              <>
-                <button onClick={() => navigate('/login')} className="hidden sm:block px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">Log In</button>
-                <Button onClick={handlePatientPortal} className="shadow-lg shadow-emerald-500/20">Patient Portal</Button>
-              </>
-            )}
-          </div>
-
-        </div>
-      </nav>
+      <Header />
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
@@ -260,76 +200,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* About Us Section */}
-      <section id="about" className="py-24 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-16">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="flex-1 w-full"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-emerald-500 rounded-3xl transform -translate-x-4 translate-y-4 -z-10 opacity-20"></div>
-              <img
-                src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                alt="Hospital Building"
-                className="w-full rounded-3xl shadow-xl object-cover aspect-[4/3]"
-              />
-              <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex items-center gap-4">
-                <div className="text-4xl font-extrabold text-emerald-600">15+</div>
-                <div className="text-sm font-semibold text-gray-700 leading-tight">Years of<br />Excellence</div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="flex-1"
-          >
-            <h2 className="text-sm font-bold text-emerald-600 uppercase tracking-widest mb-2">About SmartClinic</h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6">Dedicated to providing the best healthcare</h3>
-            <p className="text-gray-500 text-lg leading-relaxed mb-6">
-              Founded in 2011, SmartClinic has grown into a leading healthcare institution recognized for excellence in patient care, cutting-edge technology, and a compassionate approach.
-            </p>
-            <p className="text-gray-500 text-lg leading-relaxed mb-8">
-              Our state-of-the-art facility brings together world-class specialists and advanced medical equipment under one roof, ensuring that every patient receives accurate diagnostics and effective treatments.
-            </p>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <ShieldCheck size={24} />
-                </div>
-                <p className="font-semibold text-gray-900">Certified Experts</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <Activity size={24} />
-                </div>
-                <p className="font-semibold text-gray-900">Modern Technology</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <HeartPulse size={24} />
-                </div>
-                <p className="font-semibold text-gray-900">Compassionate Care</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <Clock size={24} />
-                </div>
-                <p className="font-semibold text-gray-900">24/7 Availability</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Doctor Showcase */}
       <section id="doctors" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -358,8 +228,13 @@ const LandingPage = () => {
                 className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-shadow group"
               >
                 <div className="h-64 bg-gray-200 overflow-hidden relative">
-                  {/* Since we don't have doctor images in DB yet, use a placeholder */}
-                  <img src={`https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80`} alt={doc.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {doc.image ? (
+                    <img src={doc.image} alt={doc.name} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-emerald-100 text-emerald-700 font-bold text-5xl">
+                      {doc.name?.[0]?.toUpperCase()}
+                    </div>
+                  )}
                   <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-emerald-600">
                     Featured
                   </div>
@@ -417,58 +292,62 @@ const LandingPage = () => {
                 </div>
                 <h4 className="text-xl font-bold text-gray-900 mb-3">{srv.title}</h4>
                 <p className="text-gray-500 leading-relaxed mb-6">{srv.desc}</p>
-                <a href="#" className={`inline-flex items-center text-sm font-semibold ${srv.color} hover:underline`}>
+                <button onClick={() => setActiveService(srv)} className={`inline-flex items-center text-sm font-semibold ${srv.color} hover:underline`}>
                   Learn more <ChevronRight size={16} className="ml-1" />
-                </a>
+                </button>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Appointment Widget & Testimonials Grid */}
+      {/* Patient Stories */}
       <section id="reviews" className="py-24 bg-emerald-900 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-2 gap-16 items-center">
-
-          {/* Testimonials */}
-          <div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-2">Patient Stories</h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-white mb-10 leading-tight">Don't just take our word for it.</h3>
-
-            <div className="space-y-6">
-              {testimonials.map((test, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 relative"
-                >
-                  <Quote size={40} className="absolute top-4 right-4 text-emerald-500/20" />
-                  <div className="flex items-center gap-1 text-amber-400 mb-4">
-                    {[...Array(test.rating)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
-                  </div>
-                  <p className="text-emerald-50 text-lg leading-relaxed mb-6">"{test.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-800 flex items-center justify-center text-white font-bold">
-                      {test.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-white font-bold text-sm">{test.name}</p>
-                      <p className="text-emerald-300 text-xs">{test.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">Don't just take our word for it.</h3>
           </div>
+        </div>
 
-          {/* Appointment Widget */}
-          <div id="appointment-widget" className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-2xl">
+        {/* Infinite marquee — full-bleed, pauses on hover */}
+        <div className="relative">
+          <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-r from-emerald-900 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-l from-emerald-900 to-transparent z-10 pointer-events-none" />
+
+          <div className="flex gap-6 w-max animate-marquee">
+            {[...testimonials, ...testimonials].map((test, i) => (
+              <div
+                key={i}
+                className="w-[340px] sm:w-[380px] flex-shrink-0 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 relative flex flex-col"
+              >
+                <Quote size={40} className="absolute top-4 right-4 text-emerald-500/20" />
+                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                  {[...Array(test.rating)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
+                </div>
+                <p className="text-emerald-50 leading-relaxed mb-6 flex-1">"{test.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-800 flex items-center justify-center text-white font-bold flex-shrink-0">
+                    {test.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-sm">{test.name}</p>
+                    <p className="text-emerald-300 text-xs">{test.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Appointment Widget */}
+      <section className="py-24 bg-gray-50 relative">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div id="appointment-widget" className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-xl border border-gray-100">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Request an Appointment</h3>
             <p className="text-gray-500 mb-8">Fill out the form below and our reception team will call you to confirm your slot.</p>
 
@@ -498,6 +377,13 @@ const LandingPage = () => {
                     </div>
                   </div>
                   <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1.5">Email <span className="text-gray-400 font-normal">(optional, for confirmation)</span></label>
+                    <div className="relative">
+                      <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input type="email" className="input-field pl-10 bg-gray-50" placeholder="you@example.com" value={bookingForm.email} onChange={e => setBookingForm({ ...bookingForm, email: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
                     <label className="text-sm font-medium text-gray-700 block mb-1.5">Department</label>
                     <Select value={bookingForm.department} onChange={e => setBookingForm({ ...bookingForm, department: e.target.value })} required className="bg-gray-50">
                       <option value="">Select a specialty...</option>
@@ -509,7 +395,7 @@ const LandingPage = () => {
                       <label className="text-sm font-medium text-gray-700 block mb-1.5">Preferred Date</label>
                       <div className="relative">
                         <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input required type="date" className="input-field pl-10 bg-gray-50" value={bookingForm.date} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} />
+                        <input required type="date" min={new Date().toISOString().split('T')[0]} className="input-field pl-10 bg-gray-50" value={bookingForm.date} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} />
                       </div>
                     </div>
                     <div>
@@ -523,104 +409,51 @@ const LandingPage = () => {
 
                 </div>
                 <Button type="submit" className="w-full py-4 text-base shadow-lg shadow-emerald-500/20 mt-4">Submit Request</Button>
-                <p className="text-xs text-center text-gray-400 mt-4">By submitting, you agree to our Terms of Service & Privacy Policy.</p>
+                <p className="text-xs text-center text-gray-400 mt-4">
+                  By submitting, you agree to our{' '}
+                  <Link to="/terms-of-service" className="underline hover:text-gray-600">Terms of Service</Link> &{' '}
+                  <Link to="/privacy-policy" className="underline hover:text-gray-600">Privacy Policy</Link>.
+                </p>
               </form>
             )}
           </div>
-
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 pt-20 pb-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+      <Footer />
 
-            {/* Brand */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <Activity size={18} className="text-white" />
-                </div>
-                <span className="text-xl font-bold text-white tracking-tight">SmartClinic</span>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Transforming the healthcare experience through technology, compassion, and clinical excellence.
-              </p>
-              <div className="flex gap-3">
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-500 hover:text-white transition-colors">
-                  <Facebook size={16} />
-                </a>
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-500 hover:text-white transition-colors">
-                  <XLogo size={14} />
-                </a>
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-500 hover:text-white transition-colors">
-                  <Instagram size={16} />
-                </a>
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-500 hover:text-white transition-colors">
-                  <TikTok size={16} />
-                </a>
-              </div>
+      {/* Service Detail Modal */}
+      <Modal isOpen={!!activeService} onClose={() => setActiveService(null)} title={activeService?.title || ''} size="md">
+        {activeService && (
+          <div className="space-y-5">
+            <div className={`w-14 h-14 ${activeService.bg} ${activeService.color} rounded-2xl flex items-center justify-center`}>
+              <activeService.icon size={28} />
             </div>
-
-            {/* Quick Links */}
+            <p className="text-gray-600 leading-relaxed">{activeService.details}</p>
             <div>
-              <h4 className="text-white font-bold mb-6">Quick Links</h4>
-              <ul className="space-y-4">
-                <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-gray-400 hover:text-emerald-400 text-sm transition-colors">Home</button></li>
-                <li><a href="#about" className="text-gray-400 hover:text-emerald-400 text-sm transition-colors">About Us</a></li>
-                <li><a href="#doctors" className="text-gray-400 hover:text-emerald-400 text-sm transition-colors">Our Doctors</a></li>
-                <li><a href="#services" className="text-gray-400 hover:text-emerald-400 text-sm transition-colors">Services</a></li>
-                <li><button onClick={handlePatientPortal} className="text-gray-400 hover:text-emerald-400 text-sm transition-colors">Patient Portal</button></li>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">What's included</p>
+              <ul className="space-y-2.5">
+                {activeService.included.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-gray-700">
+                    <Check size={16} className={`${activeService.color} flex-shrink-0 mt-0.5`} />
+                    {item}
+                  </li>
+                ))}
               </ul>
             </div>
-
-
-            {/* Contact */}
-            <div>
-              <h4 className="text-white font-bold mb-6">Contact Us</h4>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3 text-gray-400 text-sm">
-                  <MapPin size={18} className="text-emerald-500 flex-shrink-0" />
-                  <span>KM4 Area, Wadada Maka Al Mukarama,<br />Mogadishu, Somalia</span>
-                </li>
-                <li className="flex items-center gap-3 text-gray-400 text-sm">
-                  <Phone size={18} className="text-emerald-500 flex-shrink-0" />
-                  <span>+252 61 9157381</span>
-                </li>
-                <li className="flex items-center gap-3 text-gray-400 text-sm">
-                  <Mail size={18} className="text-emerald-500 flex-shrink-0" />
-                  <span>contact@smartclinic.com</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Open Hours */}
-            <div>
-              <h4 className="text-white font-bold mb-6">Opening Hours</h4>
-              <ul className="space-y-3">
-                <li className="flex justify-between text-sm">
-                  <span className="text-gray-400">Monday - Sunday</span>
-                  <span className="text-emerald-400 font-medium">Open 24 Hours</span>
-                </li>
-                <li className="flex justify-between text-sm">
-                  <span className="text-gray-400">Emergency Services</span>
-                  <span className="text-emerald-400 font-medium">Available 24/7</span>
-                </li>
-              </ul>
-            </div>
-
+            <Button
+              className="w-full mt-2"
+              onClick={() => {
+                setActiveService(null);
+                setBookingForm((f) => ({ ...f, department: activeService.title }));
+                document.getElementById('appointment-widget')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Book This Service
+            </Button>
           </div>
-
-          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-500 text-sm">© 2026 SmartClinic Hospital Management System. Built by Abdalle.</p>
-            <div className="flex gap-6 text-sm text-gray-500">
-              <a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+        )}
+      </Modal>
     </div>
   );
 };

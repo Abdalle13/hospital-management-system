@@ -7,19 +7,22 @@ import { fetchDoctors, createDoctor, updateDoctor, deleteDoctor } from '../redux
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input, { Select, Textarea } from '../components/ui/Input';
+import ImageUpload from '../components/ui/ImageUpload';
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const SPECIALIZATIONS = ['Cardiology','Dermatology','General Medicine','Gynecology','Neurology','Oncology','Orthopedics','Pediatrics','Psychiatry','Radiology','Surgery','Urology'];
 
 const INITIAL_FORM = {
-  name: '', specialization: 'General Medicine', phone: '', email: '',
+  name: '', image: '', specialization: 'General Medicine', phone: '', email: '',
   bio: '', consultationFee: '', schedule: { days: ['Monday','Tuesday','Wednesday','Thursday','Friday'], startTime: '09:00', endTime: '17:00' },
 };
 
 const DoctorsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
   const { list: doctors, loading } = useSelector((s) => s.doctors);
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [filterSpec, setFilterSpec] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -58,7 +61,7 @@ const DoctorsPage = () => {
     <div className="space-y-6">
       <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div><h2 className="page-title">Doctors</h2><p className="page-subtitle">{doctors.length} registered doctors</p></div>
-        <Button onClick={openAdd}><UserPlus size={16} /> Add Doctor</Button>
+        {isAdmin && <Button onClick={openAdd}><UserPlus size={16} /> Add Doctor</Button>}
       </div>
 
       {/* Filters */}
@@ -88,9 +91,13 @@ const DoctorsPage = () => {
             className="card card-hover p-5"
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">
-                {doc.name?.[0]?.toUpperCase()}
-              </div>
+              {doc.image ? (
+                <img src={doc.image} alt={doc.name} className="w-12 h-12 rounded-xl object-cover object-top flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">
+                  {doc.name?.[0]?.toUpperCase()}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{doc.name}</p>
                 <p className="text-xs text-emerald-600 font-medium">{doc.specialization}</p>
@@ -112,8 +119,8 @@ const DoctorsPage = () => {
             )}
             <div className="flex gap-2 pt-3 border-t border-gray-100">
               <Button variant="secondary" size="sm" onClick={() => navigate(`/doctors/${doc._id}`)} className="flex-1 justify-center"><Eye size={14} /> View</Button>
-              <button onClick={() => openEdit(doc)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit size={15} /></button>
-              <button onClick={() => handleDelete(doc._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
+              {isAdmin && <button onClick={() => openEdit(doc)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit size={15} /></button>}
+              {isAdmin && <button onClick={() => handleDelete(doc._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>}
             </div>
           </motion.div>
         ))}
@@ -122,6 +129,7 @@ const DoctorsPage = () => {
       {/* Add/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editDoctor ? 'Edit Doctor' : 'Add New Doctor'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <ImageUpload label="Doctor Photo" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           <div className="grid grid-cols-2 gap-4">
             <Input id="d-name" label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
             <Select id="d-spec" label="Specialization" value={form.specialization} onChange={(e) => setForm({ ...form, specialization: e.target.value })}>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { register, clearError } from '../redux/slices/authSlice';
@@ -9,8 +8,7 @@ import Input from '../components/ui/Input';
 
 const RegisterPage = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { loading, error, user } = useSelector((s) => s.auth);
+  const { loading, error } = useSelector((s) => s.auth);
   
   const [form, setForm] = useState({ 
     name: '', 
@@ -24,11 +22,6 @@ const RegisterPage = () => {
   const [passError, setPassError] = useState('');
 
   useEffect(() => { dispatch(clearError()); }, [dispatch]);
-
-  // If user is registered and logged in, redirect them
-  useEffect(() => {
-    if (user) navigate('/dashboard');
-  }, [user, navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -85,7 +78,7 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          <p className="text-emerald-200 text-xs">© 2026 SmartClinic Hospital System. Built by Abdalle.</p>
+          <p className="text-emerald-200 text-xs">© 2026 SmartClinic. Built by Abdalle.</p>
         </motion.div>
 
         {/* Right Panel - Register Form */}

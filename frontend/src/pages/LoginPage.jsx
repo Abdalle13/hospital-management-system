@@ -35,7 +35,6 @@ const LoginPage = () => {
             </div>
             <div>
               <p className="text-white font-bold text-xl">SmartClinic</p>
-              <p className="text-emerald-100 text-xs">Hospital Management System</p>
             </div>
           </div>
 
@@ -62,7 +61,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <p className="text-emerald-200 text-xs">© 2026 SmartClinic Hospital System. Built by Abdalle.</p>
+          <p className="text-emerald-200 text-xs">© 2026 SmartClinic. Built by Abdalle.</p>
         </motion.div>
 
         {/* Right Panel - Login Form */}
@@ -107,9 +106,12 @@ const LoginPage = () => {
             />
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <a href="/forgot-password" className="text-xs text-emerald-600 font-medium hover:underline">Forgot password?</a>
+              </div>
               <div className="relative">
                 <input
                   id="password"

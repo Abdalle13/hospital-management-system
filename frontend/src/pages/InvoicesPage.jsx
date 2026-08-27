@@ -8,7 +8,7 @@ import Button from '../components/ui/Button';
 import Input, { Select } from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import { formatDate, formatCurrency } from '../utils/formatter';
-import { exportToExcel, exportInvoicesToPDF } from '../utils/exportUtils';
+import { exportToExcel, exportInvoicesToPDF, exportInvoiceReceipt } from '../utils/exportUtils';
 import api from '../utils/api';
 
 const INITIAL_FORM = {
@@ -95,9 +95,12 @@ const InvoicesPage = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50/80">
-                  {['Invoice ID','Patient','Date','Total','Status','Actions'].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                  ))}
+                  <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Invoice ID</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Patient</th>
+                  <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Total</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,9 +108,9 @@ const InvoicesPage = () => {
                   <tr><td colSpan={6} className="px-5 py-12 text-center text-sm text-gray-400">No invoices found</td></tr>
                 ) : invoices.map((inv, i) => (
                   <tr key={inv._id} className={i % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
-                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900">{inv.invoiceNumber}</td>
+                    <td className="hidden md:table-cell px-5 py-3.5 text-sm font-medium text-gray-900">{inv.invoiceNumber}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-700">{inv.patient?.name || '—'}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-500">{formatDate(inv.createdAt)}</td>
+                    <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-500">{formatDate(inv.createdAt)}</td>
                     <td className="px-5 py-3.5 text-sm font-semibold text-gray-900">{formatCurrency(inv.totalAmount)}</td>
                     <td className="px-5 py-3.5"><Badge status={inv.paymentStatus} /></td>
                     <td className="px-5 py-3.5">
@@ -115,7 +118,7 @@ const InvoicesPage = () => {
                         {inv.paymentStatus === 'Unpaid' ? (
                           <Button size="sm" onClick={() => openPay(inv)}>Pay Now</Button>
                         ) : (
-                          <button className="text-gray-400 hover:text-gray-600" title="Print"><Printer size={18} /></button>
+                          <button onClick={() => exportInvoiceReceipt(inv)} className="text-gray-400 hover:text-gray-600" title="Print"><Printer size={18} /></button>
                         )}
                       </div>
                     </td>

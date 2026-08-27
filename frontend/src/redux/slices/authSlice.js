@@ -33,6 +33,25 @@ export const updateProfile = createAsyncThunk('auth/updateProfile', async (profi
   }
 });
 
+export const forgotPassword = createAsyncThunk('auth/forgotPassword', async (email, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Something went wrong. Please try again.');
+  }
+});
+
+export const resetPassword = createAsyncThunk('auth/resetPassword', async ({ token, password }, { rejectWithValue }) => {
+  try {
+    const { data } = await api.put(`/auth/reset-password/${token}`, { password });
+    localStorage.setItem('user', JSON.stringify(data));
+    return data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Failed to reset password');
+  }
+});
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -60,7 +79,13 @@ const authSlice = createSlice({
       .addCase(register.rejected, rejected)
       .addCase(updateProfile.pending, pending)
       .addCase(updateProfile.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
-      .addCase(updateProfile.rejected, rejected);
+      .addCase(updateProfile.rejected, rejected)
+      .addCase(forgotPassword.pending, pending)
+      .addCase(forgotPassword.fulfilled, (state) => { state.loading = false; })
+      .addCase(forgotPassword.rejected, rejected)
+      .addCase(resetPassword.pending, pending)
+      .addCase(resetPassword.fulfilled, (state, action) => { state.loading = false; state.user = action.payload; })
+      .addCase(resetPassword.rejected, rejected);
   },
 });
 

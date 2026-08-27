@@ -16,9 +16,11 @@ const INITIAL_FORM = { patient: '', doctor: '', date: '', time: '09:00', reason:
 
 const AppointmentsPage = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector((s) => s.auth);
   const { list: appointments, loading } = useSelector((s) => s.appointments);
   const { list: patients } = useSelector((s) => s.patients);
   const { list: doctors } = useSelector((s) => s.doctors);
+  const canManageRequests = ['admin', 'receptionist'].includes(user?.role);
   const [filter, setFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -30,6 +32,10 @@ const AppointmentsPage = () => {
   const [requests, setRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [viewMode, setViewMode] = useState('appointments'); // 'appointments' or 'requests'
+  const [confirmReq, setConfirmReq] = useState(null);
+  const [confirmDoctorId, setConfirmDoctorId] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
 
   const fetchRequests = async () => {
     setLoadingRequests(true);
@@ -86,6 +92,35 @@ const AppointmentsPage = () => {
     }
   };
 
+  const openConfirm = (req) => {
+    setConfirmReq(req);
+    setConfirmDoctorId('');
+    setConfirmError('');
+  };
+
+  const matchingDoctors = confirmReq
+    ? doctors.filter((d) => d.specialization?.toLowerCase().includes(confirmReq.department?.toLowerCase() || ''))
+    : [];
+  const doctorOptions = matchingDoctors.length > 0 ? matchingDoctors : doctors;
+
+  const handleConfirmSubmit = async (e) => {
+    e.preventDefault();
+    setConfirming(true);
+    setConfirmError('');
+    try {
+      await api.put(`/appointments/requests/${confirmReq._id}/status`, {
+        status: 'Confirmed',
+        doctorId: confirmDoctorId,
+      });
+      setConfirmReq(null);
+      fetchRequests();
+    } catch (error) {
+      setConfirmError(error.response?.data?.message || 'Failed to confirm appointment');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -94,9 +129,11 @@ const AppointmentsPage = () => {
           <p className="page-subtitle">{viewMode === 'appointments' ? `${appointments.length} appointments` : `${requests.length} pending requests`}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant={viewMode === 'requests' ? 'primary' : 'secondary'} onClick={() => setViewMode(viewMode === 'appointments' ? 'requests' : 'appointments')}>
-            {viewMode === 'appointments' ? 'View Requests' : 'View Appointments'}
-          </Button>
+          {canManageRequests && (
+            <Button variant={viewMode === 'requests' ? 'primary' : 'secondary'} onClick={() => setViewMode(viewMode === 'appointments' ? 'requests' : 'appointments')}>
+              {viewMode === 'appointments' ? 'View Requests' : 'View Appointments'}
+            </Button>
+          )}
           <Button onClick={() => setShowModal(true)}><CalendarPlus size={16} /> Book Appointment</Button>
         </div>
       </div>
@@ -132,9 +169,13 @@ const AppointmentsPage = () => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50/80">
-                    {['Patient','Doctor','Date','Time','Reason','Status','Actions'].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                    ))}
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Patient</th>
+                    <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Doctor</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Time</th>
+                    <th className="hidden lg:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Reason</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -143,15 +184,15 @@ const AppointmentsPage = () => {
                   ) : appointments.map((apt, i) => (
                     <tr key={apt._id} className={i % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                       <td className="px-5 py-3.5 text-sm font-medium text-gray-900">{apt.patient?.name || '—'}</td>
-                      <td className="px-5 py-3.5">
+                      <td className="hidden md:table-cell px-5 py-3.5">
                         <div>
                           <p className="text-sm text-gray-800">{apt.doctor?.name || '—'}</p>
                           <p className="text-xs text-gray-400">{apt.doctor?.specialization}</p>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(apt.date)}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-600">{apt.time}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-500 max-w-[120px] truncate">{apt.reason || '—'}</td>
+                      <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-600">{apt.time}</td>
+                      <td className="hidden lg:table-cell px-5 py-3.5 text-sm text-gray-500 max-w-[120px] truncate">{apt.reason || '—'}</td>
                       <td className="px-5 py-3.5"><Badge status={apt.status} /></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
@@ -172,9 +213,14 @@ const AppointmentsPage = () => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50/80">
-                    {['Name','Phone','Department','Date','Time','Message','Status','Actions'].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                    ))}
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
+                    <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone</th>
+                    <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Department</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Time</th>
+                    <th className="hidden lg:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Message</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,17 +229,17 @@ const AppointmentsPage = () => {
                   ) : requests.map((req, i) => (
                     <tr key={req._id} className={i % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                       <td className="px-5 py-3.5 text-sm font-medium text-gray-900">{req.name}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-600">{req.phone}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-600">{req.department}</td>
+                      <td className="hidden md:table-cell px-5 py-3.5 text-sm text-gray-600">{req.phone}</td>
+                      <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-600">{req.department}</td>
                       <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(req.date)}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-600">{req.time}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-500 max-w-[200px] truncate">{req.message || '—'}</td>
+                      <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-600">{req.time}</td>
+                      <td className="hidden lg:table-cell px-5 py-3.5 text-sm text-gray-500 max-w-[200px] truncate">{req.message || '—'}</td>
                       <td className="px-5 py-3.5"><Badge status={req.status} /></td>
 
                       <td className="px-5 py-3.5">
                         {req.status === 'Pending' && (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => handleRequestStatus(req._id, 'Confirmed')} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle size={15} /></button>
+                            <button onClick={() => openConfirm(req)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle size={15} /></button>
                             <button onClick={() => handleRequestStatus(req._id, 'Cancelled')} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Reject"><XCircle size={15} /></button>
                           </div>
                         )}
@@ -220,7 +266,7 @@ const AppointmentsPage = () => {
             {doctors.map((d) => <option key={d._id} value={d._id}>{d.name} — {d.specialization}</option>)}
           </Select>
           <div className="grid grid-cols-2 gap-4">
-            <Input id="apt-date" label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            <Input id="apt-date" label="Date" type="date" min={new Date().toISOString().split('T')[0]} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
             <Input id="apt-time" label="Time" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
           </div>
           <Textarea id="apt-reason" label="Reason for Visit" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Chief complaint or reason..." />
@@ -249,6 +295,28 @@ const AppointmentsPage = () => {
               </div>
             ))}
           </div>
+        )}
+      </Modal>
+
+      {/* Confirm Request -> Assign Doctor Modal */}
+      <Modal isOpen={!!confirmReq} onClose={() => setConfirmReq(null)} title="Assign Doctor & Confirm" size="sm">
+        {confirmReq && (
+          <form onSubmit={handleConfirmSubmit} className="space-y-4">
+            <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1 border border-gray-100">
+              <p><span className="text-gray-400">Patient:</span> {confirmReq.name}</p>
+              <p><span className="text-gray-400">Department:</span> {confirmReq.department}</p>
+              <p><span className="text-gray-400">Date/Time:</span> {formatDate(confirmReq.date)} · {confirmReq.time}</p>
+            </div>
+            <Select id="confirm-doctor" label="Assign Doctor" value={confirmDoctorId} onChange={(e) => setConfirmDoctorId(e.target.value)} required>
+              <option value="">Select doctor...</option>
+              {doctorOptions.map((d) => <option key={d._id} value={d._id}>{d.name} — {d.specialization}</option>)}
+            </Select>
+            {confirmError && <p className="text-xs text-red-500">{confirmError}</p>}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" type="button" onClick={() => setConfirmReq(null)}>Cancel</Button>
+              <Button type="submit" loading={confirming}>Confirm Appointment</Button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>

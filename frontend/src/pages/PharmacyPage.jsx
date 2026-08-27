@@ -6,15 +6,18 @@ import { fetchMedicines, addMedicine, updateMedicine, deleteMedicine } from '../
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input, { Select } from '../components/ui/Input';
+import ImageUpload from '../components/ui/ImageUpload';
 import { formatDate, formatCurrency } from '../utils/formatter';
 
 const INITIAL_FORM = {
-  name: '', category: 'Tablet', stock: 0, lowStockThreshold: 10, expiryDate: '', price: 0,
+  name: '', image: '', category: 'Tablet', stock: 0, lowStockThreshold: 10, expiryDate: '', price: 0,
 };
 
 const PharmacyPage = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector((s) => s.auth);
   const { list: medicines, loading } = useSelector((s) => s.pharmacy);
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [filterAlerts, setFilterAlerts] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -85,9 +88,13 @@ const PharmacyPage = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50/80">
-                  {['Name','Category','Stock','Price','Expiry Date','Status','Actions'].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                  ))}
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
+                  <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Category</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Stock</th>
+                  <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Price</th>
+                  <th className="hidden lg:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Expiry Date</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,16 +104,20 @@ const PharmacyPage = () => {
                   <tr key={m._id} className={i % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                          <Pill size={14} />
-                        </div>
+                        {m.image ? (
+                          <img src={m.image} alt={m.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                            <Pill size={14} />
+                          </div>
+                        )}
                         <p className="text-sm font-medium text-gray-900">{m.name}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{m.category}</td>
+                    <td className="hidden md:table-cell px-5 py-3.5 text-sm text-gray-600">{m.category}</td>
                     <td className="px-5 py-3.5 text-sm font-medium text-gray-900">{m.stock}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{formatCurrency(m.price)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(m.expiryDate)}</td>
+                    <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-600">{formatCurrency(m.price)}</td>
+                    <td className="hidden lg:table-cell px-5 py-3.5 text-sm text-gray-600">{formatDate(m.expiryDate)}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex flex-col gap-1">
                         {isLowStock(m) && <span className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded w-max">Low Stock</span>}
@@ -117,7 +128,7 @@ const PharmacyPage = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit size={15} /></button>
-                        <button onClick={() => handleDelete(m._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
+                        {isAdmin && <button onClick={() => handleDelete(m._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -131,6 +142,7 @@ const PharmacyPage = () => {
       {/* Add/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editMed ? 'Edit Medicine' : 'Add Medicine'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <ImageUpload label="Medicine Image" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           <Input id="m-name" label="Medicine Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <div className="grid grid-cols-2 gap-4">
             <Select id="m-cat" label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>

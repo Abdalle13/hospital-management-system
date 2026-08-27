@@ -7,23 +7,16 @@ import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input, { Select, Textarea } from '../components/ui/Input';
 import { formatDate } from '../utils/formatter';
-import { IKContext, IKUpload } from 'imagekitio-react';
 
-const IK_PUBLIC_KEY = 'your_imagekit_public_key_here'; // Replace with actual key
-const IK_URL_ENDPOINT = 'your_imagekit_url_endpoint_here'; // Replace with actual endpoint
-const AUTH_ENDPOINT = 'http://localhost:5000/api/upload/imagekit-auth'; // Adjust based on environment
-
-const authenticator = async () => {
-  try {
-    const { data } = await api.get('/upload/imagekit-auth');
-    return data;
-  } catch (error) {
-    throw new Error(`Authentication request failed: ${error.message}`);
-  }
-};
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
 
 const INITIAL_FORM = {
-  patient: '', doctor: '', appointment: '', diagnosis: '', notes: '', followUpDate: '',
+  patient: '', doctor: '', diagnosis: '', notes: '', followUpDate: '',
   prescription: [{ medication: '', dosage: '', duration: '' }],
   vitalSigns: { bloodPressure: '', heartRate: '', temperature: '', weight: '' },
   attachments: [],
@@ -34,13 +27,13 @@ const MedicalRecordsPage = () => {
   const [records, setRecords] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [appointments, setAppointments] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     api.get('/patients').then((r) => setPatients(r.data)).catch(() => {});
@@ -54,9 +47,6 @@ const MedicalRecordsPage = () => {
       .then((r) => setRecords(r.data))
       .catch(() => setRecords([]))
       .finally(() => setLoading(false));
-    api.get('/appointments', { params: { patientId: selectedPatient } })
-      .then((r) => setAppointments(r.data))
-      .catch(() => {});
   }, [selectedPatient]);
 
   const addPrescriptionRow = () => setForm({ ...form, prescription: [...form.prescription, { medication: '', dosage: '', duration: '' }] });
@@ -87,6 +77,22 @@ const MedicalRecordsPage = () => {
       ...prev,
       attachments: [...prev.attachments, { url: res.url, name: res.name, fileId: res.fileId }]
     }));
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const { data } = await api.post('/upload/file', { file: base64, fileName: file.name });
+      handleUploadSuccess(data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   const canCreate = ['admin', 'doctor'].includes(user?.role);
@@ -230,7 +236,7 @@ const MedicalRecordsPage = () => {
               {doctors.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
             </Select>
             <Input id="r-diagnosis" label="Diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} required className="col-span-2" />
-            <Input id="r-followup" label="Follow-up Date" type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="col-span-2 sm:col-span-1" />
+            <Input id="r-followup" label="Follow-up Date" type="date" min={new Date().toISOString().split('T')[0]} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} className="col-span-2 sm:col-span-1" />
           </div>
 
           {/* Vital Signs */}
@@ -270,20 +276,16 @@ const MedicalRecordsPage = () => {
           {/* Attachments Upload */}
           <div>
             <p className="text-sm font-medium text-gray-700 mb-2">Attachments (X-ray, Lab Reports)</p>
-            <IKContext 
-              publicKey={IK_PUBLIC_KEY} 
-              urlEndpoint={IK_URL_ENDPOINT} 
-              authenticator={authenticator}
-            >
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors">
-                <IKUpload
-                  fileName="record-attachment"
-                  onSuccess={handleUploadSuccess}
-                  onError={(err) => alert('Upload failed: ' + err.message)}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                />
-              </div>
-            </IKContext>
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors">
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFileSelect}
+                disabled={uploading}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer disabled:opacity-50"
+              />
+              {uploading && <p className="text-xs text-gray-400 mt-2">Uploading…</p>}
+            </div>
             {form.attachments.length > 0 && (
               <div className="mt-3 flex flex-col gap-1">
                 {form.attachments.map((att, i) => (

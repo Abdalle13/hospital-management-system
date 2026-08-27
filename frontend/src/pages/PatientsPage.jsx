@@ -12,13 +12,16 @@ import { formatDate } from '../utils/formatter';
 
 const INITIAL_FORM = {
   name: '', age: '', gender: 'Male', bloodType: 'O+', phone: '', email: '',
-  address: '', emergencyContact: { name: '', phone: '', relationship: '' }, allergies: '', notes: '',
+  address: '', emergencyContact: { name: '', phone: '', relationship: '' }, notes: '', password: '',
 };
 
 const PatientsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
   const { list: patients, loading } = useSelector((s) => s.patients);
+  const canWrite = ['admin', 'receptionist'].includes(user?.role);
+  const canDelete = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [filterGender, setFilterGender] = useState('');
   const [filterBlood, setFilterBlood] = useState('');
@@ -26,24 +29,37 @@ const PatientsPage = () => {
   const [editPatient, setEditPatient] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     dispatch(fetchPatients({ search, gender: filterGender, bloodType: filterBlood }));
   }, [dispatch, search, filterGender, filterBlood]);
 
-  const openAdd = () => { setEditPatient(null); setForm(INITIAL_FORM); setShowModal(true); };
+  const openAdd = () => { setEditPatient(null); setForm(INITIAL_FORM); setFormError(''); setShowModal(true); };
   const openEdit = (p) => {
     setEditPatient(p);
-    setForm({ ...p, allergies: p.allergies?.join(', ') || '', emergencyContact: p.emergencyContact || {} });
+    setForm({ ...p, emergencyContact: p.emergencyContact || {}, password: '' });
+    setFormError('');
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { ...form, allergies: form.allergies ? form.allergies.split(',').map((a) => a.trim()) : [] };
-    if (editPatient) await dispatch(updatePatient({ id: editPatient._id, ...payload }));
-    else await dispatch(createPatient(payload));
+    setFormError('');
+    if (editPatient) {
+      const { password, ...rest } = form;
+      const payload = { id: editPatient._id, ...rest };
+      if (password) payload.password = password;
+      const result = await dispatch(updatePatient(payload));
+      if (updatePatient.rejected.match(result)) {
+        setSaving(false);
+        setFormError(result.payload || 'Failed to update patient');
+        return;
+      }
+    } else {
+      await dispatch(createPatient(form));
+    }
     setSaving(false);
     setShowModal(false);
   };
@@ -58,7 +74,7 @@ const PatientsPage = () => {
     <div className="space-y-6">
       <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div><h2 className="page-title">Patients</h2><p className="page-subtitle">{patients.length} registered patients</p></div>
-        <Button onClick={openAdd}><UserPlus size={16} /> Add Patient</Button>
+        {canWrite && <Button onClick={openAdd}><UserPlus size={16} /> Add Patient</Button>}
       </div>
 
       {/* Filters */}
@@ -86,9 +102,13 @@ const PatientsPage = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50/80">
-                  {['Patient','Age','Gender','Blood Type','Phone','Registered','Actions'].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                  ))}
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Patient</th>
+                  <th className="hidden sm:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Age</th>
+                  <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Gender</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Blood Type</th>
+                  <th className="hidden md:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone</th>
+                  <th className="hidden lg:table-cell px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Registered</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,16 +127,16 @@ const PatientsPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{p.age}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{p.gender}</td>
+                    <td className="hidden sm:table-cell px-5 py-3.5 text-sm text-gray-600">{p.age}</td>
+                    <td className="hidden md:table-cell px-5 py-3.5 text-sm text-gray-600">{p.gender}</td>
                     <td className="px-5 py-3.5"><span className="badge-scheduled">{p.bloodType}</span></td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{p.phone}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-500">{formatDate(p.createdAt)}</td>
+                    <td className="hidden md:table-cell px-5 py-3.5 text-sm text-gray-600">{p.phone}</td>
+                    <td className="hidden lg:table-cell px-5 py-3.5 text-sm text-gray-500">{formatDate(p.createdAt)}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button onClick={() => navigate(`/patients/${p._id}`)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Eye size={15} /></button>
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit size={15} /></button>
-                        <button onClick={() => handleDelete(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>
+                        {canWrite && <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit size={15} /></button>}
+                        {canDelete && <button onClick={() => handleDelete(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={15} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -130,6 +150,9 @@ const PatientsPage = () => {
       {/* Add/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editPatient ? 'Edit Patient' : 'Register New Patient'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{formError}</div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <Input id="p-name" label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
             <Input id="p-age" label="Age" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required />
@@ -143,6 +166,18 @@ const PatientsPage = () => {
             <Input id="p-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="col-span-2" />
             <Input id="p-address" label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="col-span-2" />
           </div>
+          {editPatient && editPatient.userId && (
+            <div className="border-t border-gray-100 pt-4">
+              <Input
+                id="p-password"
+                label="Portal Login Password"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Leave blank if you don't want to change"
+              />
+            </div>
+          )}
           <div className="border-t border-gray-100 pt-4">
             <p className="text-sm font-medium text-gray-700 mb-3">Emergency Contact</p>
             <div className="grid grid-cols-3 gap-3">
@@ -151,7 +186,6 @@ const PatientsPage = () => {
               <Input id="ec-rel" label="Relationship" value={form.emergencyContact?.relationship || ''} onChange={(e) => setForm({ ...form, emergencyContact: { ...form.emergencyContact, relationship: e.target.value } })} />
             </div>
           </div>
-          <Input id="p-allergies" label="Allergies (comma separated)" value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} placeholder="Penicillin, Sulfa..." />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saving}>{editPatient ? 'Update Patient' : 'Register Patient'}</Button>

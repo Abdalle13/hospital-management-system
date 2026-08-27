@@ -103,6 +103,17 @@
     @apply bg-gray-50/60;
   }
 
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee-scroll 36s linear infinite;
+  }
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
   /* Print styles */
   @media print {
     .no-print { display: none !important; }

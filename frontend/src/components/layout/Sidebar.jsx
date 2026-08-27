@@ -8,16 +8,17 @@ import {
 } from 'lucide-react';
 import { logout } from '../../redux/slices/authSlice';
 
+// Patients never render this Sidebar (Layout hides it entirely for them and
+// uses PatientPortal's own nav instead), so no patient-role entries here.
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'doctor', 'receptionist'] },
-  { to: '/portal', label: 'My Portal', icon: LayoutDashboard, roles: ['patient'] },
   { to: '/patients', label: 'Patients', icon: Users, roles: ['admin', 'doctor', 'receptionist'] },
   { to: '/doctors', label: 'Doctors', icon: UserCog, roles: ['admin', 'receptionist'] },
   { to: '/staff', label: 'Staff Management', icon: ShieldCheck, roles: ['admin'] },
-  { to: '/appointments', label: 'Appointments', icon: Calendar, roles: ['admin', 'doctor', 'receptionist', 'patient'] },
-  { to: '/records', label: 'Medical Records', icon: FileText, roles: ['admin', 'doctor', 'patient'] },
+  { to: '/appointments', label: 'Appointments', icon: Calendar, roles: ['admin', 'doctor', 'receptionist'] },
+  { to: '/records', label: 'Medical Records', icon: FileText, roles: ['admin', 'doctor'] },
   { to: '/pharmacy', label: 'Pharmacy', icon: Pill, roles: ['admin', 'doctor', 'receptionist'] },
-  { to: '/invoices', label: 'Billing', icon: Receipt, roles: ['admin', 'receptionist', 'patient'] },
+  { to: '/invoices', label: 'Billing', icon: Receipt, roles: ['admin', 'receptionist'] },
   { to: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ];
 
@@ -43,7 +44,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
           <div>
             <p className="text-base font-bold text-gray-900">SmartClinic</p>
-            <p className="text-xs text-gray-400">Hospital System</p>
           </div>
         </div>
         {/* Mobile close */}

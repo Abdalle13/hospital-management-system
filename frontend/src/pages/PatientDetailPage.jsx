@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Phone, Mail, MapPin, Heart, User, Calendar, FileText, Receipt } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Receipt } from 'lucide-react';
 import { fetchPatient } from '../redux/slices/patientSlice';
 import { fetchAppointments } from '../redux/slices/appointmentSlice';
 import { fetchInvoices } from '../redux/slices/invoiceSlice';
@@ -74,7 +74,6 @@ const PatientDetailPage = () => {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3">Personal Information</h3>
           <InfoItem icon={MapPin} label="Address" value={patient.address} />
-          <InfoItem icon={Heart} label="Allergies" value={patient.allergies?.join(', ') || 'None'} />
           {patient.emergencyContact?.name && (
             <div className="pt-2 border-t border-gray-50">
               <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Emergency Contact</p>
