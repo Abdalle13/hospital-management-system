@@ -61,7 +61,7 @@ const PatientDetailPage = () => {
               <span className="badge-scheduled">{patient.bloodType}</span>
             </div>
             <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><User size={13}/>{patient.age} yrs · {patient.gender}</span>
+              <span className="flex items-center gap-1"><User size={13}/>{patient.age ? `${patient.age} yrs · ` : ''}{patient.gender}</span>
               <span className="flex items-center gap-1"><Phone size={13}/>{patient.phone}</span>
               {patient.email && <span className="flex items-center gap-1"><Mail size={13}/>{patient.email}</span>}
             </div>

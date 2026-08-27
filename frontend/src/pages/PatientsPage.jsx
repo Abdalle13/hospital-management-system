@@ -171,7 +171,7 @@ const PatientsPage = () => {
             <Input id="p-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="col-span-2" />
             <Input id="p-address" label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="col-span-2" />
           </div>
-          {(!editPatient || editPatient.userId) && (
+          {editPatient && editPatient.userId && (
             <div className="border-t border-gray-100 pt-4">
               <Input
                 id="p-password"
@@ -179,7 +179,7 @@ const PatientsPage = () => {
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder={editPatient ? "Leave blank if you don't want to change" : "Optional — set this to give the patient a portal login"}
+                placeholder="Leave blank if you don't want to change"
               />
             </div>
           )}

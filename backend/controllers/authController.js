@@ -31,15 +31,29 @@ export const register = async (req, res) => {
     });
 
     if (user) {
-      // Create associated Patient profile
-      await Patient.create({
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        age: 0, // Default age, can be updated later
-        gender: 'Other', // Default
-        userId: user._id,
+      // If staff already registered this person as a walk-in (matched by
+      // phone or email, no portal login linked yet), connect their new
+      // account to that existing record instead of creating a duplicate
+      // that would leave their real appointment/record/invoice history
+      // behind on the old, now-orphaned Patient document.
+      let patient = await Patient.findOne({
+        userId: { $exists: false },
+        $or: [{ phone }, { email }],
       });
+
+      if (patient) {
+        patient.userId = user._id;
+        if (!patient.email) patient.email = email;
+        await patient.save();
+      } else {
+        patient = await Patient.create({
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          gender: 'Other',
+          userId: user._id,
+        });
+      }
 
       res.status(201).json({
         _id: user._id,

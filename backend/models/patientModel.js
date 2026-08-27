@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 const patientSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    age: { type: Number, required: true },
+    // Not required at the schema level — self-registered patients don't give
+    // an age at signup (the public form stays minimal); they fill it in later
+    // via their profile. Staff intake still enforces it via the form itself.
+    age: { type: Number },
     gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },
     bloodType: {
       type: String,
