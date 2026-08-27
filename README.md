@@ -2,8 +2,6 @@
 
 A full-stack hospital / clinic management system built on the MERN stack. SmartClinic covers the whole lifecycle of running a clinic — public appointment booking, patient self-service, role-scoped staff dashboards, medical records, billing, and a pharmacy inventory — behind role-based access control.
 
-Live backend API: https://hospital-management-system-teal-nine.vercel.app
-
 ## Roles
 
 The system has four roles, each with its own scoped view — the UI only ever shows actions a role is actually allowed to perform, matching the backend's permission checks exactly.

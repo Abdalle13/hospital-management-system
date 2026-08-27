@@ -179,7 +179,7 @@ const PatientPortal = () => {
   const upcomingAppointments = appointments.filter((apt) => apt.status === 'Scheduled');
 
   return (
-    <div className="flex min-h-screen bg-[#FDFDFD] text-slate-900 font-sans antialiased">
+    <div className="flex min-h-screen bg-[#FDFDFD] text-slate-900 font-sans antialiased overflow-x-hidden">
 
       {/* ================= FIXED SIDEBAR ================= */}
       <aside className="w-64 bg-white border-r border-slate-100 hidden md:flex flex-col justify-between p-6 fixed h-full z-30">
@@ -233,7 +233,7 @@ const PatientPortal = () => {
       </aside>
 
       {/* ================= MAIN CONTENT AREA ================= */}
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 md:pl-64 flex flex-col min-h-screen">
 
         {/* HEADER */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-20">

@@ -97,7 +97,7 @@ const LandingPage = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
+      <section className="relative pt-32 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
         {/* Background blobs */}
         <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[800px] bg-emerald-50 rounded-full blur-3xl opacity-50 -z-10"></div>
         <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-50 -z-10"></div>
@@ -172,7 +172,7 @@ const LandingPage = () => {
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-10 -left-8 sm:-left-12 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 border border-gray-50"
+              className="hidden sm:flex absolute top-10 -left-8 md:-left-12 bg-white p-4 rounded-2xl shadow-xl items-center gap-4 border border-gray-50"
             >
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
                 <ShieldCheck size={24} />
@@ -186,7 +186,7 @@ const LandingPage = () => {
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute bottom-10 -right-4 sm:-right-8 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 border border-gray-50"
+              className="hidden sm:flex absolute bottom-10 -right-4 md:-right-8 bg-white p-4 rounded-2xl shadow-xl items-center gap-4 border border-gray-50"
             >
               <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
                 <Clock size={24} />

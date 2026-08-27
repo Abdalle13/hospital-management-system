@@ -70,7 +70,7 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="page-header flex items-center justify-between">
+      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="page-title">Dashboard</h2>
           <p className="page-subtitle">{subtitle}</p>
@@ -81,7 +81,7 @@ const DashboardPage = () => {
               <UserPlus size={16} /> Add Patient
             </button>
           )}
-          <button onClick={() => navigate('/appointments')} className="btn-primary">
+          <button onClick={() => navigate('/appointments')} className="btn-primary w-full sm:w-auto justify-center">
             <CalendarPlus size={16} /> Book Appointment
           </button>
         </div>

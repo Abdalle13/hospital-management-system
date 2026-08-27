@@ -36,8 +36,6 @@ const ProtectedRoute = ({ children, roles }) => {
 const RoleRedirect = () => {
   const { user } = useSelector((s) => s.auth);
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'doctor') return <Navigate to="/appointments" replace />;
-  if (user.role === 'receptionist') return <Navigate to="/patients" replace />;
   if (user.role === 'patient') return <Navigate to="/portal" replace />;
   return <Navigate to="/dashboard" replace />;
 };
